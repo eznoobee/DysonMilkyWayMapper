@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DSP Milky Way Planner</title>
+</head>
+<body>
+  <div id="viewport"></div>
+
+  <aside id="left-panel">
+    <header id="app-title">
+      <h1>MILKY WAY PLANNER</h1>
+      <div class="subtitle">Dyson Sphere Program &middot; cluster address targeting</div>
+    </header>
+
+    <section class="panel" id="sec-data">
+      <h2>Star Data</h2>
+      <label class="file-button" for="file-input">Load dump CSV</label>
+      <input type="file" id="file-input" accept=".csv" />
+      <div class="hint">or drag &amp; drop a <span class="mono">mwdump_*.csv</span> anywhere</div>
+      <div id="load-status" class="mono dim">no data loaded</div>
+      <div id="progress-wrap" hidden>
+        <div id="progress-bar"></div>
+        <div id="progress-text" class="mono"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="sec-settings">
+      <h2>Cluster Settings</h2>
+      <div class="row">
+        <label for="set-stars">Star count</label>
+        <input type="number" id="set-stars" min="32" max="64" step="1" value="64" />
+      </div>
+      <div class="row">
+        <label for="set-res">Resources</label>
+        <select id="set-res"></select>
+      </div>
+      <div class="row">
+        <label>Mode</label>
+        <div class="seg" id="set-mode">
+          <button data-mode="combat" class="active">Combat</button>
+          <button data-mode="peace">Peace</button>
+          <button data-mode="sandbox">Sandbox</button>
+        </div>
+      </div>
+      <div class="row" id="fog-row">
+        <label for="set-fog">Fog difficulty</label>
+        <input type="range" id="set-fog" min="0" max="9.9" step="0.1" value="0" />
+        <span id="fog-value" class="mono">0.0</span>
+      </div>
+      <div class="row">
+        <label>Address preview</label>
+        <span id="address-preview" class="mono accent"></span>
+      </div>
+      <div class="warning">
+        &#9888; These settings must EXACTLY match the settings the dump CSV was
+        generated with. Any other combination places every star at an unrelated
+        position. Changing a setting clears current match results.
+      </div>
+    </section>
+
+    <section class="panel" id="sec-match">
+      <h2>Matching</h2>
+      <div class="row">
+        <label for="set-ymax">Height filter |y| &le;</label>
+        <input type="range" id="set-ymax" min="1" max="900" step="1" value="15" />
+        <span id="ymax-value" class="mono">15</span>
+      </div>
+      <div id="match-report" class="mono dim">no targets</div>
+    </section>
+
+    <section class="panel" id="sec-export">
+      <h2>Export</h2>
+      <div class="btn-row">
+        <button id="btn-copy" disabled>Copy addresses</button>
+        <button id="btn-download" disabled>Download CSV</button>
+      </div>
+      <div id="export-status" class="mono dim"></div>
+    </section>
+  </aside>
+
+  <div id="toolbar">
+    <div class="seg" id="tool-buttons">
+      <button data-tool="browse" class="active" title="Orbit only">Browse</button>
+      <button data-tool="circle" title="Click to place a ring of targets">Circle</button>
+      <button data-tool="line" title="Two clicks: start and end">Line</button>
+      <button data-tool="point" title="One target per click">Point</button>
+    </div>
+    <div class="tool-params" id="params-circle" hidden>
+      <label>R <input type="range" id="circle-radius" min="10" max="600" step="5" value="120" />
+        <span id="circle-radius-value" class="mono">120</span></label>
+      <label>dots <input type="range" id="circle-dots" min="4" max="128" step="1" value="40" />
+        <span id="circle-dots-value" class="mono">40</span></label>
+      <label class="check"><input type="checkbox" id="circle-center" checked /> center</label>
+    </div>
+    <div class="tool-params" id="params-line" hidden>
+      <label>dots <input type="range" id="line-dots" min="2" max="64" step="1" value="12" />
+        <span id="line-dots-value" class="mono">12</span></label>
+    </div>
+    <div class="seg">
+      <button id="btn-undo" title="Remove last placement">Undo</button>
+      <button id="btn-clear" title="Remove all targets">Clear</button>
+    </div>
+    <div class="key-hints mono dim">T top-down &middot; shift-drag pan &middot; Esc cancel</div>
+  </div>
+
+  <div id="hud" class="mono"></div>
+
+  <div id="drop-overlay"><div>Drop the dump CSV to load</div></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+# large generated test data
+testdata/
+mwdump_*.csv

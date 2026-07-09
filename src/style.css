@@ -203,8 +203,10 @@ button.active {
 #toolbar {
   position: fixed;
   top: 12px;
-  left: 50%;
+  left: calc(50% + 154px); /* centered over the viewport right of the panel */
   transform: translateX(-50%);
+  max-width: calc(100vw - 328px);
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -216,6 +218,7 @@ button.active {
 }
 
 .tool-params { display: flex; align-items: center; gap: 12px; }
+.tool-params[hidden] { display: none; }
 .tool-params label {
   display: flex;
   align-items: center;
@@ -250,6 +253,52 @@ button.active {
 #match-report { line-height: 1.7; white-space: pre-line; }
 #match-report .good { color: var(--green); }
 #match-report .bad { color: var(--amber); }
+
+/* ---------- view panel ---------- */
+
+.check-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+}
+.check-grid .check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+/* ---------- inspect tooltip ---------- */
+
+#tooltip {
+  position: fixed;
+  z-index: 60;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: rgba(4, 12, 24, 0.94);
+  border: 1px solid var(--cyan);
+  border-radius: 3px;
+  box-shadow: 0 0 16px rgba(86, 200, 255, 0.35);
+  pointer-events: none;
+  font-size: 11px;
+  line-height: 1.5;
+}
+#tooltip .tip-title {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--cyan);
+}
+#tooltip .tip-title.lit { color: var(--amber); }
+#tooltip .tip-addr {
+  font-size: 13px;
+  color: #fff;
+  margin: 2px 0 4px;
+}
+#tooltip table { border-collapse: collapse; }
+#tooltip td { padding: 0 10px 0 0; color: var(--text); }
+#tooltip td:first-child { color: var(--dim); }
+#tooltip .tip-note { margin-top: 4px; color: var(--dim); font-size: 10px; }
 
 /* ---------- drop overlay ---------- */
 

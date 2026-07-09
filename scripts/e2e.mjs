@@ -117,6 +117,68 @@ await page.click('#btn-undo');
 const targetsAfterUndo = await page.evaluate(() => window.__mw.state.targets.xs.length);
 check('undo removes the circle group', targetsAfterUndo === 0, String(targetsAfterUndo));
 
+// --- occupied/lit stars: load, HUD count, decode, inspect tooltip ---
+await page.setInputFiles('#file-input', 'testdata/mwoccupied_test.csv');
+await page.waitForFunction(() => window.__mw.state.occupied !== null, null, { timeout: 15000 });
+const occ = await page.evaluate(() => {
+  const o = window.__mw.state.occupied;
+  return {
+    count: o.count,
+    unplaced: o.unplaced,
+    firstAddr: o.decoded[0].address,
+    modes: [...new Set(o.decoded.map((d) => d.mode))].sort(),
+  };
+});
+check('occupied CSV loads 1500 lit clusters', occ.count === 1500, String(occ.count));
+check('lit clusters all placed', occ.unplaced === 0);
+check('seedKey decodes to an address', /^\d{8}-\d+(-[AZ]|S)\d{2}(-\d{2})?$/.test(occ.firstAddr), occ.firstAddr);
+check('mixed modes decoded', occ.modes.length >= 2, occ.modes.join(','));
+const occStatus = await page.textContent('#occupied-status');
+check('occupied status shows count', occStatus.includes('1,500'), occStatus.trim());
+
+// hover a lit star: project one to screen coords and move the mouse there
+await page.click('#tool-buttons button[data-tool="browse"]');
+const litProbe = await page.evaluate(() => {
+  // find a lit star reasonably far from the center to avoid overlaps
+  const o = window.__mw.state.occupied;
+  let best = 0, bestR = -1;
+  for (let i = 0; i < o.count; i++) {
+    const r = Math.hypot(o.x[i], o.z[i]);
+    if (r > bestR) { bestR = r; best = i; }
+  }
+  return { i: best, addr: o.decoded[best].address };
+});
+// top-down first so projection is stable, then compute its screen position
+await page.keyboard.press('t');
+await page.waitForTimeout(800);
+const screenPos = await page.evaluate((idx) => {
+  const o = window.__mw.state.occupied;
+  return window.__mw.projectForTest(o.x[idx], o.y[idx], o.z[idx]);
+}, litProbe.i);
+await page.mouse.move(screenPos.x, screenPos.y);
+await page.waitForTimeout(200);
+const tipVisible = await page.evaluate(() => !document.getElementById('tooltip').hidden);
+const tipText = tipVisible ? await page.textContent('#tooltip') : '';
+check('hover lit star shows tooltip', tipVisible);
+check('tooltip decodes the address', tipText.includes(litProbe.addr),
+  `${litProbe.addr} in "${tipText.slice(0, 80)}"`);
+check('tooltip shows power + engineers', /power/.test(tipText) && /engineers/.test(tipText));
+
+// view toggles: hide lit stars, tooltip should stop hitting them
+await page.uncheck('#view-occupied');
+await page.mouse.move(screenPos.x + 3, screenPos.y);
+await page.waitForTimeout(150);
+const tipAfterToggle = await page.evaluate(() => {
+  const t = document.getElementById('tooltip');
+  return t.hidden ? '' : t.textContent;
+});
+check('hiding lit stars disables their tooltip', !tipAfterToggle.includes('LIT'), tipAfterToggle.slice(0, 40));
+await page.check('#view-occupied');
+await page.click('#view-candidates button[data-mode="dim"]');
+const dimApplied = await page.evaluate(() => window.__mw.state.view.candidates === 'dim');
+check('candidates dim toggle', dimApplied);
+await page.click('#view-candidates button[data-mode="bright"]');
+
 // --- line tool: two clicks place N interpolated dots ---
 await page.click('#tool-buttons button[data-tool="line"]');
 await page.mouse.click(box.x + box.width / 2 - 200, box.y + box.height / 2 - 100);

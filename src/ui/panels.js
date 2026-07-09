@@ -1,7 +1,7 @@
 // DOM wiring for the settings / matching / export panels, toolbar and HUD.
 
 import {
-  state, on, emit, setSettings, setTool, setYMax, undoTargets, clearTargets,
+  state, on, emit, setSettings, setTool, setYMax, setView, undoTargets, clearTargets,
 } from '../state.js';
 import {
   clusterString, RESOURCE_MULTIPLIERS, MODE_COMBAT,
@@ -174,6 +174,43 @@ export function initPanels() {
     }
   });
 
+  // ----- view toggles -----
+  const viewCandidates = $('view-candidates');
+  viewCandidates.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) setView({ candidates: b.dataset.mode });
+  });
+  const bindViewCheck = (id, key) => {
+    $(id).addEventListener('change', (e) => setView({ [key]: e.target.checked }));
+  };
+  bindViewCheck('view-backdrop', 'backdrop');
+  bindViewCheck('view-starfield', 'starfield');
+  bindViewCheck('view-occupied', 'occupied');
+  bindViewCheck('view-inspect', 'inspect');
+  on('view', () => {
+    for (const b of viewCandidates.querySelectorAll('button')) {
+      b.classList.toggle('active', b.dataset.mode === state.view.candidates);
+    }
+    $('view-backdrop').checked = state.view.backdrop;
+    $('view-starfield').checked = state.view.starfield;
+    $('view-occupied').checked = state.view.occupied;
+    $('view-inspect').checked = state.view.inspect;
+  });
+
+  // ----- occupied status -----
+  const occupiedStatus = $('occupied-status');
+  on('occupied', () => {
+    const o = state.occupied;
+    if (!o) {
+      occupiedStatus.textContent = '';
+      return;
+    }
+    occupiedStatus.textContent =
+      `${(o.count - o.unplaced).toLocaleString()} lit stars`
+      + (o.unplaced ? ` · ${o.unplaced.toLocaleString()} without position (need in-game F10 dump)` : '');
+    occupiedStatus.className = 'mono';
+  });
+
   // ----- loading UI -----
   const loadStatus = $('load-status');
   const progressWrap = $('progress-wrap');
@@ -202,9 +239,10 @@ export function initPanels() {
   };
 }
 
-export function updateHud({ starCount, targetCount, matchedCount, cursor }) {
+export function updateHud({ starCount, targetCount, matchedCount, litCount, cursor }) {
   $('hud').textContent =
     `stars ${starCount ? starCount.toLocaleString() : '—'}` +
+    (litCount ? `  ·  lit ${litCount.toLocaleString()}` : '') +
     `  ·  targets ${targetCount}` +
     `  ·  matched ${matchedCount}` +
     `  ·  cursor ${cursor ? `${cursor.x.toFixed(1)}, ${cursor.z.toFixed(1)}` : '—'}`;

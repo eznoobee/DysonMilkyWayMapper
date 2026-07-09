@@ -16,10 +16,12 @@
 
     <section class="panel" id="sec-data">
       <h2>Star Data</h2>
-      <label class="file-button" for="file-input">Load dump CSV</label>
-      <input type="file" id="file-input" accept=".csv" />
-      <div class="hint">or drag &amp; drop a <span class="mono">mwdump_*.csv</span> anywhere</div>
+      <label class="file-button" for="file-input">Load data files</label>
+      <input type="file" id="file-input" accept=".csv,.bin,.dat" multiple />
+      <div class="hint">drag &amp; drop anywhere: <span class="mono">mwdump_*.csv</span> (positions),
+        <span class="mono">mwoccupied_*.csv</span> (lit stars), server blob</div>
       <div id="load-status" class="mono dim">no data loaded</div>
+      <div id="occupied-status" class="mono dim"></div>
       <div id="progress-wrap" hidden>
         <div id="progress-bar"></div>
         <div id="progress-text" class="mono"></div>
@@ -70,6 +72,24 @@
       <div id="match-report" class="mono dim">no targets</div>
     </section>
 
+    <section class="panel" id="sec-view">
+      <h2>View</h2>
+      <div class="row">
+        <label>Candidates</label>
+        <div class="seg" id="view-candidates">
+          <button data-mode="bright" class="active">Bright</button>
+          <button data-mode="dim">Dim</button>
+          <button data-mode="hidden">Off</button>
+        </div>
+      </div>
+      <div class="check-grid">
+        <label class="check"><input type="checkbox" id="view-backdrop" checked /> nebula</label>
+        <label class="check"><input type="checkbox" id="view-starfield" checked /> starfield</label>
+        <label class="check"><input type="checkbox" id="view-occupied" checked /> lit stars</label>
+        <label class="check"><input type="checkbox" id="view-inspect" checked /> inspect</label>
+      </div>
+    </section>
+
     <section class="panel" id="sec-export">
       <h2>Export</h2>
       <div class="btn-row">
@@ -107,7 +127,9 @@
 
   <div id="hud" class="mono"></div>
 
-  <div id="drop-overlay"><div>Drop the dump CSV to load</div></div>
+  <div id="drop-overlay"><div>Drop the dump / occupied CSV to load</div></div>
+
+  <div id="tooltip" class="mono" hidden></div>
 
   <script type="module" src="/src/main.js"></script>
 </body>

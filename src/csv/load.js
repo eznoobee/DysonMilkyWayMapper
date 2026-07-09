@@ -7,9 +7,11 @@ import ParseWorker from './parseWorker.js?worker&inline';
 import { parseFile } from './parseCore.js';
 import { parseDumpFilename } from '../filename.js';
 import { buildGrid } from '../match/grid.js';
-import { setDataset, setSettings } from '../state.js';
+import { setDataset, setSettings, setOccupied, state } from '../state.js';
+import { parseOccupiedCsv } from '../occupied/parse.js';
+import { parseBlob, mergeBlobRecords } from '../occupied/blob.js';
 
-export function initLoading({ fileInput, dropZone, onProgress, onLoaded, onError }) {
+export function initLoading({ fileInput, dropZone, onProgress, onLoaded, onError, onOccupied }) {
   let loading = false;
 
   function finish(file, result) {
@@ -45,6 +47,32 @@ export function initLoading({ fileInput, dropZone, onProgress, onLoaded, onError
       loading = false;
       onError(String((err && err.message) || err));
     }
+  }
+
+  async function handleOccupiedFile(file, kind) {
+    try {
+      if (kind === 'csv') {
+        setOccupied(parseOccupiedCsv(await file.text()));
+      } else {
+        const records = await parseBlob(await file.arrayBuffer());
+        setOccupied(mergeBlobRecords(state.occupied, records));
+      }
+      const o = state.occupied;
+      onOccupied(o.count, o.unplaced, file.name);
+    } catch (err) {
+      onError(`${file.name}: ${String((err && err.message) || err)}`);
+    }
+  }
+
+  async function routeFile(file) {
+    if (!file) return;
+    // Sniff the header: position dumps start "seed,", occupied dumps
+    // "seedkey,"; anything else is treated as a server blob.
+    const head = (await file.slice(0, 64).text()).toLowerCase();
+    if (/^seedkey\s*,/.test(head)) return handleOccupiedFile(file, 'csv');
+    if (/^seed\s*,/.test(head)) return handleFile(file);
+    if (/\.csv$/i.test(file.name)) return handleFile(file); // headerless? let the parser complain
+    return handleOccupiedFile(file, 'blob');
   }
 
   function handleFile(file) {
@@ -83,7 +111,9 @@ export function initLoading({ fileInput, dropZone, onProgress, onLoaded, onError
     worker.postMessage({ file });
   }
 
-  fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+  fileInput.addEventListener('change', () => {
+    for (const f of fileInput.files) routeFile(f);
+  });
 
   const stop = (e) => { e.preventDefault(); e.stopPropagation(); };
   ['dragenter', 'dragover'].forEach((ev) =>
@@ -91,7 +121,7 @@ export function initLoading({ fileInput, dropZone, onProgress, onLoaded, onError
   ['dragleave', 'drop'].forEach((ev) =>
     dropZone.addEventListener(ev, (e) => { stop(e); dropZone.classList.remove('drag-over'); }));
   dropZone.addEventListener('drop', (e) => {
-    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    handleFile(file);
+    const files = (e.dataTransfer && e.dataTransfer.files) || [];
+    for (const f of files) routeFile(f);
   });
 }

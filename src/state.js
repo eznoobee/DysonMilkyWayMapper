@@ -41,7 +41,30 @@ export const state = {
   tool: 'browse', // browse | circle | line | point
   circle: { radius: 120, dots: 40, center: true },
   lineDots: 12,
+
+  // Lit/occupied clusters from the plugin's F10 dump (positions + stats),
+  // optionally refreshed from the server blob (stats only).
+  occupied: null, // { seedKeys:BigInt[], decoded[], x,y,z:F32, caps:F32, engineers:Int32, count, unplaced }
+
+  // View toggles for the in-game-style rendering.
+  view: {
+    candidates: 'bright', // bright | dim | hidden
+    backdrop: true,
+    starfield: true,
+    occupied: true,
+    inspect: true,
+  },
 };
+
+export function setOccupied(occupied) {
+  state.occupied = occupied;
+  emit('occupied');
+}
+
+export function setView(patch) {
+  Object.assign(state.view, patch);
+  emit('view');
+}
 
 export function setDataset(dataset) {
   state.dataset = dataset;

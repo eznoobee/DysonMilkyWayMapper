@@ -73,6 +73,30 @@ export function seedKeyFor(seed, settings) {
   );
 }
 
+// Exact reverse of packSeedKey: decode a cluster's full settings from its
+// 64-bit seedKey (as delivered by the leaderboard server / occupied dumps).
+export function unpackSeedKey(seedKey) {
+  const k = BigInt(seedKey);
+  const seed = Number(k / 100000000n);
+  const rest = Number(k % 100000000n);
+  const starCount = Math.floor(rest / 100000);
+  const rc = Math.floor((rest % 100000) / 1000);
+  const suffix = rest % 1000;
+
+  let mode, fogDifficulty = 0;
+  if (suffix === 999) mode = MODE_SANDBOX;
+  else if (suffix >= 100 && suffix <= 199) {
+    mode = MODE_COMBAT;
+    fogDifficulty = (suffix - 100) / 10;
+  } else mode = MODE_PEACE;
+
+  const resourceMultiplier = rc === 99 ? Infinity : rc / 10;
+  return {
+    seed, starCount, resCode: rc, resourceMultiplier, suffix, mode, fogDifficulty,
+    address: clusterString(seed, { starCount, resourceMultiplier, mode, fogDifficulty }),
+  };
+}
+
 // Labels used in exports and the UI.
 export function resourceLabel(mult) {
   return mult > 9.95 ? 'infinite' : String(mult);

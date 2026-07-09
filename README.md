@@ -49,6 +49,39 @@ consumes a CSV dumped in-game by the MWDump BepInEx plugin
 To light a star, start a new game with EXACTLY the listed settings and build a
 Dyson sphere that uploads power to the leaderboard. Each dot = one playthrough.
 
+## Lit stars overlay (in-game view)
+
+The planner can render the already-lit leaderboard stars like the in-game
+Milky Way screen — bright glows sized and colored by generated power, on top
+of the candidate cloud (which you can dim or hide in the **View** panel).
+
+1. Compile the updated plugin (`docs/plugin/MilkyWayDumpPlugin.cs` — same
+   build command as before), open the in-game **Milky Way** screen, press
+   **F10**. It writes `mwoccupied_*.csv` (`seedkey,x,y,z,caps,engineers`).
+2. Drag that file into the planner (alongside the position dump).
+3. Hover any lit star to see its decoded identity — cluster address, seed,
+   star count, resources, mode, fog difficulty, power, engineers. Click to
+   pin the tooltip. Hovering a candidate star (Browse tool) shows its seed
+   and the address it would have under the current settings.
+4. Optional: refresh power/engineer stats without launching the game via
+   `scripts/fetch-milkyway.mjs` — currently blocked on capturing the game's
+   login exchange; see `docs/live-fetch.md`.
+
+## Can positions be reverse-engineered? (x,y,z → seed)
+
+No — not analytically. The game scatters clusters with Unity's Perlin noise;
+it's a one-way hash-like mapping with no inverse formula, and neighboring
+positions have unrelated seeds. The dump **is** the inverse: a lookup table of
+`seed → position` that the app searches nearest-neighbor (that's exactly what
+shape matching does). Lit stars are the exception — they carry their full
+`seedKey`, which decodes exactly back to seed + settings (the tooltip shows
+this).
+
+Want more candidates ("all possible points")? Generate bigger dumps: raise
+`SeedEnd` in the plugin (up to 100,000,000). Tip: set `YFilter` (e.g. `20`) to
+keep only flat-disk stars — that covers the full seed space in roughly 1/6 of
+the rows, which is what shape matching uses anyway.
+
 ## Address format
 
 Implemented byte-exactly from the decompiled game (`GameDesc.seedKey64` /
@@ -86,8 +119,11 @@ isn't available.)
 ### Architecture
 
 - `src/csv/` — streaming CSV parser into typed arrays (Web Worker, with a
-  main-thread fallback for `file://` where blob workers are blocked).
-- `src/address.js`, `src/filename.js` — seedKey / cluster-address formats.
+  main-thread fallback for `file://` where blob workers are blocked); routes
+  files by header (`seed,` = positions, `seedkey,` = occupied, else blob).
+- `src/address.js`, `src/filename.js` — seedKey / cluster-address formats,
+  including `unpackSeedKey` (seedKey → seed + full settings).
+- `src/occupied/` — lit-star dump/blob parsing, stats merging, overlay layer.
 - `src/match/` — CSR spatial hash on x/z (6-unit cells) + expanding-ring
   nearest-neighbor matching with height filter and seed uniqueness.
 - `src/render/` — three.js: additive point-cloud galaxy, orbit controls with
